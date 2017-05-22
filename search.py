@@ -4,6 +4,7 @@ import numpy as np
 import itertools
 from heapdict import heapdict
 from copy import deepcopy
+import pdb
 
 def main():
     # This is a sample main function that shows examples and expected
@@ -109,7 +110,7 @@ def heuristic_manhattan(state):
     return total
 
 
-def check_neighbor(current):
+def neighbors(current):
     neighbors = []
     index = current.index(0)
     subind = np.unravel_index(index,(3,3))
@@ -143,13 +144,12 @@ def check_neighbor(current):
     return neighbors
 
 
-def reconstruct_path(current):
-    path = ''
-    while 1:
-        if current[4] == '' and path != '':
-            break
-        path = current[4] + path
-        current = current[2]
+def reconstruct_path(cameFrom, current):
+    path = str()
+    while current in cameFrom.keys():
+        current = cameFrom[current]
+        path = current[1] + path
+        current = current[0]
     return path
 
 
@@ -170,35 +170,29 @@ def astar(init_state, heuristic):
     goal = (1, 2, 3, 4, 5, 6, 7, 8, 0)
     gScore = 0
     fScore = heuristic(init_state) + gScore
-    cameFrom = []
-    closedSet = heapdict()
+    cameFrom = {}
+    closedSet = {}
     openSet = heapdict()
-    openSet[init_state] = (fScore,init_state,cameFrom,gScore,'')
+    openSet[init_state] = (fScore,init_state,gScore,'')
     """
     Followed pseudo code in wikipedia: https://en.wikipedia.org/wiki/A*_search_algorithm
     """
     while openSet != ():
-        current = deepcopy(openSet.popitem())
+        current = openSet.popitem()
         states_visited.append(current[0])
         if current[0] == goal:
-            return reconstruct_path(current[1]), states_visited
+            return reconstruct_path(cameFrom, current[1][1]), states_visited
         closedSet[current[0]] = current[1]
-        neighbors = check_neighbor(current[0])
 
-        for i in range(len(neighbors)):
-            closedList = list(closedSet.keys())
-            openList = list(openSet.keys())
-            neighbor = neighbors[i]
-            state = neighbor[0]
-            direc_state = neighbor[1]
-            if state in closedList:
+        for neighbor in neighbors(current[0]):
+            if neighbor[0] in closedSet:
                 continue
-            if state not in openList:
-                cameFrom = current[1]
-                get_gScore = current[1]
-                gScore = get_gScore[3] + 1
-                fScore = gScore + heuristic(state)
-                openSet[state] = (fScore,state,cameFrom,gScore,direc_state)
+            if neighbor[0] not in openSet:
+                # State from which came from and direction
+                cameFrom[neighbor[0]] = (current[0],neighbor[1])
+                gScore = current[1][2] + 1
+                fScore = gScore + heuristic(neighbor[0])
+                openSet[neighbor[0]] = (fScore,neighbor[0],gScore,neighbor[1])
     return 'failure'
 
 
